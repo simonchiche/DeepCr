@@ -1,1 +1,3 @@
-*.txt
+!/Analysis
+!/Analysis/*.py
+
