@@ -1,0 +1,10 @@
+!/Analysis
+!/Analysis/*.py
+/Analysis/Data
+/Analysis/Backup
+!/GenerateSims
+!/GenerateSims/Scripts
+/GenerateSims/Scripts/GenerateLayout/Plots
+/GenerateSims/Scripts/GenerateLayout/Plots/*
+/GenerateSims/Docs
+/GenerateSims/Sketch
