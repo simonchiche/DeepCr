@@ -1,7 +1,14 @@
-!/Analysis
+/Biblio
+/Meetings
+/UsuefulPlots
+/Simulations
+
 !/Analysis/*.py
+
 /Analysis/Data
 /Analysis/Backup
+/Analysis/Plots
+
 !/GenerateSims
 !/GenerateSims/Scripts
 /GenerateSims/Scripts/GenerateLayout/Plots
