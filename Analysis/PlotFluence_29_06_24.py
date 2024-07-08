@@ -40,7 +40,7 @@ plt.rc('font', **font)
 # =============================================================================
 
 Path =  "/Users/chiche/Desktop/DeepCrSearch"\
-+ "/Simulations/DeepCrLib/Rectangle_Proton_0.0316_0_0_1/"
++ "/Simulations/SpoleDoubleRing/Rectangle_Proton_0.0316_0_0_1/"
 energy = float(Path.split("/")[-2].split("_")[2])
 theta  = float(Path.split("/")[-2].split("_")[3])
 
@@ -134,13 +134,13 @@ for j in range(337, 338, 1):
 
 
 # Coreas
-EfieldMap(Pos, Nlay, Nplane, EtotC_int, "CoreasIntRaw", True, energy, theta, OutputPath)
+EfieldMap(Pos, Nlay, Nplane, EtotC, "CoreasPeakSpole", True, energy, theta, OutputPath)
 
 # Coreas Normalized
 EfieldMap(Pos, Nlay, Nplane, EtotC_int/max(EtotC_int), "Coreas", False, energy, theta, OutputPath)
 
 # Geant 
-EfieldMap(Pos, Nlay, Nplane, EtotG_int, "GeantIntRaw", True, energy, theta, OutputPath)
+EfieldMap(Pos, Nlay, Nplane, EtotG_int, "GeantHilbertSpole", True, energy, theta, OutputPath)
     
 # Geant normalized
 EfieldMap(Pos, Nlay, Nplane, EtotG_int/max(EtotG_int), "Geant", False, energy, theta, OutputPath)

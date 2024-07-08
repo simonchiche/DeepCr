@@ -101,7 +101,6 @@ def GetIntTraces(Traces, Nant):
     for i in range(Nant):
         
         Etot_all = np.sqrt(Traces[i][:,1]**2 + Traces[i][:,2]**2 + Traces[i][:,3]**2)
-        
         extent = 10000
         peak_id = np.argmax(Etot_all)
         minid = peak_id -extent
@@ -114,10 +113,6 @@ def GetIntTraces(Traces, Nant):
         Ex[i] = simps(abs(hilbert(Traces[i][minid:maxid,1])), time)*1e9
         Ey[i] = simps(abs(hilbert(Traces[i][minid:maxid,2])), time)*1e9
         Ez[i] = simps(abs(hilbert(Traces[i][minid:maxid,3])), time)*1e9
-        
-        Ex[i] = simps(Traces[i][minid:maxid,1], time)*1e9
-        Ey[i] = simps(Traces[i][minid:maxid,2], time)*1e9
-        Ez[i] = simps(Traces[i][minid:maxid,3], time)*1e9
         Etot[i] = Ex[i]**2 + Ey[i]**2 + Ez[i]**2
 
     return Ex, Ey, Ez, Etot
@@ -132,7 +127,7 @@ def GetIntTracesSum(Traces, Nant):
         
         Etot_all = np.sqrt(Traces[i][:,1]**2 + Traces[i][:,2]**2 + Traces[i][:,3]**2)
         
-        extent = 1000
+        extent = 10000
         peak_id = np.argmax(Etot_all)
         minid = peak_id -extent
         maxid = peak_id + extent
