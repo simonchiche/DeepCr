@@ -17,14 +17,14 @@ def EfieldMap(Pos, Nlay, Nplanes, E, sim, save, energy, theta, path):
         antmin = i*Nplanes
         antmax = (i+1)*Nplanes
         plt.scatter(Pos[antmin:antmax,0], Pos[antmin:antmax,1], \
-                    c= E[antmin:antmax], cmap = "jet", s=80)
+                    c= E[antmin:antmax], cmap = "jet")
         cbar = plt.colorbar()
         plt.xlabel("x [m]")
         plt.ylabel("y [m]")
         cbar.set_label("E [$\mu V/m$]")
         depth = 3216 - Pos[Nplanes*i,2]
-        plt.xlim(-200,200)
-        plt.ylim(-200,200)
+        #plt.xlim(-200,200)
+        #plt.ylim(-200,200)
         plt.legend(["Depth = %.f m" %(depth)], loc ="upper right")
         plt.title(sim + " map (E =$%.2f\,$EeV, $\\theta=%.1f^{\circ}$)" %(energy, theta), size =14)
         if(save):
@@ -57,6 +57,17 @@ def PlotTraces(Traces, start, stop):
         plt.title(r"Proton  E = 0.01 EeV - $\theta = 0^{\circ}$ $\phi = 0^{\circ}$")
         plt.show()
 
+
+def PlotGivenTrace(Traces, arg, ax):
+    
+    if(ax == "x"): ax =1
+    if(ax == "y"): ax =2
+    if(ax == "z"): ax =3
+    plt.plot(Traces[arg][:, 0]*1e9,Traces[arg][:, ax])
+    plt.xlabel("Time [ns]")
+    plt.ylabel("E [$\mu V/m$]")
+    #plt.title(r"Proton  E = 0.01 EeV - $\theta = 0^{\circ}$ $\phi = 0^{\circ}$")
+    plt.show()
 
 def plot_polarisation(vxb, vxvxb, Etot_sp, Evxb, Evxvxb, path):
     

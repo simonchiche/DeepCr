@@ -6,6 +6,7 @@
 !/Analysis/*.py
 
 /Analysis/Data
+/Analysis/SimData
 /Analysis/Backup
 /Analysis/Plots
 
