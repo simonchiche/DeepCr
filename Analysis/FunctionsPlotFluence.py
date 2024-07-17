@@ -23,7 +23,7 @@ def EfieldMap(Pos, Nlay, Nplanes, E, sim, save, energy, theta, path):
         plt.ylabel("y [m]")
         cbar.set_label("E [$\mu V/m$]")
         depth = 3216 - Pos[Nplanes*i,2]
-        #plt.xlim(-200,200)
+        #plt.xlim(-250,250)
         #plt.ylim(-200,200)
         plt.legend(["Depth = %.f m" %(depth)], loc ="upper right")
         plt.title(sim + " map (E =$%.2f\,$EeV, $\\theta=%.1f^{\circ}$)" %(energy, theta), size =14)
