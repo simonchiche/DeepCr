@@ -16,7 +16,7 @@ def EfieldMap(Pos, Nlay, Nplanes, E, sim, save, energy, theta, path):
     for i in range(Nlay):
         antmin = i*Nplanes
         antmax = (i+1)*Nplanes
-        plt.scatter(Pos[antmin:antmax,0], Pos[antmin:antmax,1], \
+        plt.scatter(Pos[antmin:antmax,0][(Pos[antmin:antmax,0]>-2713) % (Pos[antmin:antmax,0]<2995)], Pos[antmin:antmax,1][(Pos[antmin:antmax,1]>-2951) % (Pos[antmin:antmax,1]<2851)], \
                     c= E[antmin:antmax], cmap = "jet")
         cbar = plt.colorbar()
         plt.xlabel("x [m]")

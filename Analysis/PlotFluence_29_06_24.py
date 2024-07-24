@@ -25,8 +25,8 @@ from datetime import datetime
 from scipy.optimize import curve_fit
 
 
-SimDir = "DeepCrLib"
-SimName = "Rectangle_Proton_0.1_47_0_1"
+SimDir = "InclinedShower"
+SimName = "Rectangle_Proton_1.0_70_0_1"
 
 date = datetime.today().strftime('%Y-%m-%d')
 WorkPath = os.getcwd()
@@ -156,7 +156,7 @@ EfieldMap(Pos, Nlay, Nplane, EtotG_int, "GeantHilbert", True, energy, theta, Out
 EfieldMap(Pos, Nlay, Nplane, EtotG_int/max(EtotG_int), "Geant", False, energy, theta, OutputPath)
 
 # Total emission
-EfieldMap(Pos, Nlay, Nplane, Etot_int, "Total", True, energy, theta, OutputPath)
+EfieldMap(Pos, Nlay, Nplane, Etot_int, "SimCut", False, energy, theta, OutputPath)
 
 #
 #Total emission from peak
@@ -262,8 +262,8 @@ plt.xlabel("Depth [m]")
 plt.ylabel("Extent [m]")
 plt.title("E =$%.2f\,$EeV, $\\theta=%.1f^{\circ}$" %(energy, theta), size =14)
 plt.legend()
-plt.savefig(OutputPath + "LayoutExtent_E%.2f_th%.1f.pdf" \
-             %(energy, theta), bbox_inches = "tight")
+#plt.savefig(OutputPath + "LayoutExtent_E%.2f_th%.1f.pdf" \
+ #            %(energy, theta), bbox_inches = "tight")
 plt.show()
 
 
@@ -271,12 +271,12 @@ plt.scatter(3216-np.array(Depths), radioextent/simextent)
 plt.xlabel("Depth [m]")
 plt.ylabel("Filling factor [%]")
 plt.title("E =$%.2f\,$EeV, $\\theta=%.1f^{\circ}$" %(energy, theta), size =14)
-plt.savefig(OutputPath + "FillingFactor_E%.2f_th%.1f.pdf" \
-             %(energy, theta), bbox_inches = "tight")
+#plt.savefig(OutputPath + "FillingFactor_E%.2f_th%.1f.pdf" \
+#             %(energy, theta), bbox_inches = "tight")
 plt.show()
 
 
-
+"""
 
 
 
@@ -386,4 +386,4 @@ plt.plot(abs(np.array(Depths)-3216), rtest/p0_0316[2])
 plt.plot(abs(np.array(Depths)-3216), r/popt[0])
 plt.show()
 
-
+"""

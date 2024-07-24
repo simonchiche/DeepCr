@@ -166,7 +166,7 @@ def getGroundXmaxDistance(Xmax_primary, zenith_cr, injh2, GroundAltitude):
     # CR zenith here? check with RM
     XmaxHeight, DistDecayXmax = _dist_decay_Xmax(Xmax_primary, GroundAltitude, zenith_cr, injh2) 
 
-    print(XmaxHeight, "height")
+    #print(XmaxHeight, "height")
     Rearth = 6370949 
     
     # zenith in cosmic ray convention here
@@ -192,7 +192,7 @@ def getXmaxPosition(XmaxPrimary, azimuth, zenith_cr, glevel,  injh=1e5):
     
     return XmaxPosition
 
-getXmaxPosition(765.70844, 0, 70, 3216)
+XmaxPos = getXmaxPosition(765.70844, 0, 70, 3216)
 
 
     
