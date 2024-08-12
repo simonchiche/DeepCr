@@ -293,3 +293,70 @@ def CombineTraces(Nant, Traces_C, Traces_G):
     
             TracesTot[i] = np.array([Twindow, Ex, Ey, Ez]).T
     return TracesTot 
+
+def GetAntLine(Pos, Nplane):
+    k =0
+    for i in range(len(Pos)):
+    
+        if(Pos[i,0]*Pos[i+1,0]<0):
+            k = k +1
+        if(k ==2):
+            NantLine = (i+1)
+            break
+    Nlines = int(Nplane/NantLine)
+    return NantLine, Nlines
+
+
+
+def GetRadioExtent(Nlay, Nplane, Pos, Etot_int):
+    
+# Boucle sur le nombre de layers. Pour chaque layer on trouve la zone ou on a 99% de l'énergie
+# Garder la ligne avec l'intégrale la plus grande et ensuite classer par |x|
+# Code specifique à phi =0, ex_max selon l'axe x
+#Nlay =5
+# Nplane = 729
+# Depth = [100, 80, 60, 40, 0]
+
+
+    NantLine, Nlines = GetAntLine(Pos, Nplane)
+
+    extent = np.zeros(Nlay)
+    maxpos = np.zeros(Nlay)
+    xminlay = np.zeros(Nlay)
+    xmaxlay = np.zeros(Nlay)
+    
+    for i in range(Nlay):
+        IntAll = np.zeros(Nlines)
+        for j in range(Nlines):
+            argmin = j*NantLine + i*Nplane
+            argmax = (j+1)*NantLine + i*Nplane
+            IntAll[j] = np.sum(Etot_int[argmin:argmax])
+        
+        Lmax = np.argmax(IntAll)
+        
+        argfracmin = Lmax*NantLine + i*Nplane
+        argfracmax = (Lmax+1)*NantLine + i*Nplane   
+        
+        #plt.scatter(Pos[argfracmin:argfracmax, 0], Etot_int[argfracmin:argfracmax])
+        #plt.show()
+        
+        Frac = Etot_int[argfracmin +np.argsort\
+                        (Etot_int[argfracmin:argfracmax])[::-1]]/IntAll[Lmax]
+        SumFrac = np.cumsum(Frac)
+        ilow = np.searchsorted(SumFrac, 0.99)
+        xlow= Pos[argfracmin + ilow, 0]
+        imax = np.argmax(Etot_int[argfracmin:argfracmax])
+        xmax = Pos[argfracmin + imax, 0]
+        maxpos[i] = xmax
+        xminlay[i] = min(Pos[i*Nplane:(i+1)*Nplane,0])
+        xmaxlay[i] = max(Pos[i*Nplane:(i+1)*Nplane,0])
+        extent[i]= int(abs(xmax - xlow))
+        
+        radioextent = 2*extent
+        simextent = abs(xmaxlay-xminlay)
+        
+        # amplitude along the line with the highest integrated signal
+        #plt.scatter(Pos[Lmax*NantLine:(Lmax+1)*NantLine,0],  \
+                #Etot_int[Lmax*NantLine:(Lmax+1)*NantLine])
+
+    return radioextent, simextent, extent, maxpos, xminlay, xmaxlay

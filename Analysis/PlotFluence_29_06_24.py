@@ -17,7 +17,7 @@ import pickle
 from GetLayoutScaling import GetDepthScaling, GetEnergyScaling, Getradius
 from scipy.interpolate import interp1d
 import scipy
-from FunctionsGetFluence import Norm, LoadTraces, GetPeakTraces, Traces_cgs_to_si, GetDepths, CorrectScaling, CombineTraces, CorrectLength, GetIntTraces, GetIntTracesSum
+from FunctionsGetFluence import Norm, LoadTraces, GetPeakTraces, Traces_cgs_to_si, GetDepths, CorrectScaling, CombineTraces, CorrectLength, GetIntTraces, GetIntTracesSum, GetRadioExtent
 from FunctionsPlotFluence import EfieldMap, PlotLDF, PlotTraces, plot_polarisation, PlotMaxTraces, PlotAllTraces, PlotLayer, PlotGivenTrace
 from CleanCoreasTraces import CleanCoreasTraces
 from scipy.interpolate import griddata
@@ -25,8 +25,8 @@ from datetime import datetime
 from scipy.optimize import curve_fit
 
 
-SimDir = "InclinedShower"
-SimName = "Rectangle_Proton_1.0_70_0_1"
+SimDir = "DeepCrLib"
+SimName = "Rectangle_Proton_0.1_10_0_1"
 
 date = datetime.today().strftime('%Y-%m-%d')
 WorkPath = os.getcwd()
@@ -137,12 +137,10 @@ PlotGivenTrace(Traces_C, 310, "y")
 #                         Compute Fluence
 # =============================================================================
 
+# correction if antenna with odd amplitude
 if(max(Etot_int)>100*Etot_int[np.argsort(Etot_int)[1]]):
     kmax = np.argmax(Etot_int)
     Etot_int[kmax] = Etot_int[np.argsort(Etot_int)[1]]#np.mean(Etot_int)
-# Coreas
-##EtotC_int[364] = 0
-##EtotC_int[1093] = 0
 
 EfieldMap(Pos, Nlay, Nplane, EtotC_int, "CoreasHilbert", False, energy, theta, OutputPath)
 
@@ -156,14 +154,13 @@ EfieldMap(Pos, Nlay, Nplane, EtotG_int, "GeantHilbert", True, energy, theta, Out
 EfieldMap(Pos, Nlay, Nplane, EtotG_int/max(EtotG_int), "Geant", False, energy, theta, OutputPath)
 
 # Total emission
-EfieldMap(Pos, Nlay, Nplane, Etot_int, "SimCut", False, energy, theta, OutputPath)
+EfieldMap(Pos, Nlay, Nplane, Etot_int, "Total", False, energy, theta, OutputPath)
 
-#
 #Total emission from peak
-#EfieldMap(Pos, Nlay, Nplane, np.maximum(EtotC, EtotG), "Total", Save, energy, theta, OutputPath)
+EfieldMap(Pos, Nlay, Nplane, np.maximum(EtotC, EtotG), "Total", False, energy, theta, OutputPath)
 
-# Geant 
-#EfieldMap(Pos, Nlay, Nplane, EtotG_int/EtotC_int, "GeantoverCoreas", Save, energy, theta, OutputPath)
+# Geant over CoREAS
+EfieldMap(Pos, Nlay, Nplane, EtotG_int/EtotC_int, "GeantoverCoreas", False, energy, theta, OutputPath)
     
 
 # =============================================================================
@@ -188,74 +185,14 @@ plot_polarisation(Pos[:Nplane,0], Pos[:Nplane,1], \
 #                    Parametrization of the spacing
 # =============================================================================
 
+radioextent, simextent, extent, maxpos, xminlay, xmaxlay = \
+    GetRadioExtent(Nlay, Nplane, Pos, Etot_int)
 
-# Boucle sur le nombre de layers. Pour chaque layer on trouve la zone ou on a 99% de l'énergie
-
-# je dois comprendre comment sont organisées les antennes
-#pour chaque layer je prends l'extent sur chaque ligne et je garde l'extent max
-# je peux faire un code specifique à phi =0, ex_max selon l'axe x
-#garder en mémoire la ligne pour laquelle c'est max
-# Garder la ligne avec l'intégrale la plus grande et ensuite classer par |x|
-
-# il faut Nlines et NantperLine
-
-#Nlay =5
-# Nplane = 729
-# Depth = [100, 80, 60, 40, 0]
-
-def GetAntLine(Pos, Nplane):
-    k =0
-    for i in range(len(Pos)):
-    
-        if(Pos[i,0]*Pos[i+1,0]<0):
-            k = k +1
-        if(k ==2):
-            NantLine = (i+1)
-            break
-    Nlines = int(Nplane/NantLine)
-    return NantLine, Nlines
-
-NantLine, Nlines = GetAntLine(Pos, Nplane)
-
-extent = np.zeros(Nlay)
-maxpos = np.zeros(Nlay)
-xminlay = np.zeros(Nlay)
-xmaxlay = np.zeros(Nlay)
-for i in range(Nlay):
-    IntAll = np.zeros(Nlines)
-    for j in range(Nlines):
-        argmin = j*NantLine + i*Nplane
-        argmax = (j+1)*NantLine + i*Nplane
-        IntAll[j] = np.sum(Etot_int[argmin:argmax])
-    
-    Lmax = np.argmax(IntAll)
-    
-    argfracmin = Lmax*NantLine + i*Nplane
-    argfracmax = (Lmax+1)*NantLine + i*Nplane   
-    
-    plt.scatter(Pos[argfracmin:argfracmax, 0], Etot_int[argfracmin:argfracmax])
-    plt.show()
-    
-    Frac = Etot_int[argfracmin +np.argsort\
-                    (Etot_int[argfracmin:argfracmax])[::-1]]/IntAll[Lmax]
-    SumFrac = np.cumsum(Frac)
-    ilow = np.searchsorted(SumFrac, 0.99)
-    xlow= Pos[argfracmin + ilow, 0]
-    imax = np.argmax(Etot_int[argfracmin:argfracmax])
-    xmax = Pos[argfracmin + imax, 0]
-    maxpos[i] = xmax
-    xminlay[i] = min(Pos[i*Nplane:(i+1)*Nplane,0])
-    xmaxlay[i] = max(Pos[i*Nplane:(i+1)*Nplane,0])
-    extent[i]= int(abs(xmax - xlow))
-
-
-#plt.scatter(Pos[Lmax*NantLine:(Lmax+1)*NantLine,0],  Etot_int[Lmax*NantLine:(Lmax+1)*NantLine])
-     
-
-radioextent = 2*extent
-simextent = abs(xmaxlay-xminlay)
 print(radioextent/simextent)
 
+### Plots
+
+# radio extent and simulation extent vd depth
 plt.plot(3216-np.array(Depths), radioextent, label = "radio")
 plt.plot(3216-np.array(Depths), simextent, label = "sim")
 plt.xlabel("Depth [m]")
@@ -266,7 +203,7 @@ plt.legend()
  #            %(energy, theta), bbox_inches = "tight")
 plt.show()
 
-
+# filling factor
 plt.scatter(3216-np.array(Depths), radioextent/simextent)
 plt.xlabel("Depth [m]")
 plt.ylabel("Filling factor [%]")
@@ -276,18 +213,20 @@ plt.title("E =$%.2f\,$EeV, $\\theta=%.1f^{\circ}$" %(energy, theta), size =14)
 plt.show()
 
 
-"""
 
-
-
-
+### Parametrization of the radio extent vs depth for different
+# zenith angles and energies (to be saved in specific files) 
+# see conclusions below
 p0_0316 = np.array([31, 319, 336, 376, 407, 403, 461, 534, 538])
-p1_0316 = np.array([2.813e-5, 4.1152e-4, 1.4380e-3, 1.9917e-4, 5.4562e-2, 1.7811e-1, 2.5802e-1, 9.0471e-3, 6.1912e-2])
+p1_0316 = np.array([2.813e-5, 4.1152e-4, 1.4380e-3, 1.9917e-4, 5.4562e-2,\
+                    1.7811e-1, 2.5802e-1, 9.0471e-3, 6.1912e-2])
 p2_0316 = np.array([3.07, 3.032, 2.77, 3.23, 1.932, 1.703, 1.664, 2.446, 2.0719])   
 
 p0_01 = np.array([555, 553, 582, 645, 667, 789, 823, 922])
-p1_01 = np.array([3.5956e-2, 8.0731e-2, 1.3556e-1, 9.4164e-2, 3.5645e-1, 1.4066e-2, 3.7933e-1, 4.4415e-2])
+p1_01 = np.array([3.5956e-2, 8.0731e-2, 1.3556e-1, 9.4164e-2, 3.5645e-1, \
+                  1.4066e-2, 3.7933e-1, 4.4415e-2])
 p2_01 = np.array([2.04, 1.89, 1.842, 1.911, 1.691, 2.45, 1.7652, 2.27])   
+
 
 r0 = Getradius(abs(np.array(Depths)-3216), p0_0316[0], p1_0316[0], p2_0316[0])
 r1 = Getradius(abs(np.array(Depths)-3216), p0_0316[1], p1_0316[1], p2_0316[1])
@@ -308,6 +247,9 @@ r5_17 = Getradius(abs(np.array(Depths)-3216), p0_01[5], p1_01[5], p2_01[5])
 r6_17 = Getradius(abs(np.array(Depths)-3216), p0_01[6], p1_01[6], p2_01[6])
 r7_17 = Getradius(abs(np.array(Depths)-3216), p0_01[7], p1_01[7], p2_01[7])
 
+
+### Plots
+# At 10^16.5 eV
 plt.plot(abs(np.array(Depths)-3216), r1/p0_0316[1])
 plt.plot(abs(np.array(Depths)-3216), r2/p0_0316[2])
 plt.plot(abs(np.array(Depths)-3216), r3/p0_0316[3])
@@ -325,15 +267,14 @@ plt.title("E = $10^{16.5}$ eV", fontsize =14)
 #             %(energy), bbox_inches = "tight")
 plt.show()
 
-
+# At 10^17 eV
 plt.plot(abs(np.array(Depths)-3216), r0_17/p0_01[0])
-
 plt.plot(abs(np.array(Depths)-3216), r1_17/p0_01[1])
 plt.plot(abs(np.array(Depths)-3216), r2_17/p0_01[2])
 plt.plot(abs(np.array(Depths)-3216), r3_17/p0_01[3])
 plt.plot(abs(np.array(Depths)-3216), r4_17/p0_01[4])
 plt.plot(abs(np.array(Depths)-3216), r5_17/p0_01[5])
-#plt.plot(abs(np.array(Depths)-3216), r6_17/p0_01[6])
+plt.plot(abs(np.array(Depths)-3216), r6_17/p0_01[6])
 plt.plot(abs(np.array(Depths)-3216), r7_17/p0_01[7])
 plt.xlabel("Depth [m]")
 plt.ylabel("Scaling factor")
@@ -342,6 +283,7 @@ plt.savefig(OutputPath + "Scaling_vs_Depth_E%.2f.pdf" \
              %(energy), bbox_inches = "tight")
 plt.show()
 
+# 10^16.5 eV and 10^17 eV mixed
 
 plt.plot(abs(np.array(Depths)-3216), r1/p0_0316[1], linestyle =":")
 plt.plot(abs(np.array(Depths)-3216), r2/p0_0316[2], linestyle =":")
@@ -365,6 +307,13 @@ plt.plot(abs(np.array(Depths)-3216), r6_17/p0_01[6])
 plt.plot(abs(np.array(Depths)-3216), r7_17/p0_01[7])
 plt.show()
 
+
+# CCL: the seventh parametrization (in index) at 10^16.5 eV seems to reproduce well the dependency 
+# of the radio extent with the depth independently of the simulation energy and depth
+
+"""
+# preliminary test for analytic modeling
+
 theta16 = np.array([0, 10, 20, 28, 34, 39, 43, 47, 50])
 theta17 = np.array([10, 20, 28, 34, 39, 43, 47, 50])
 
@@ -385,5 +334,5 @@ plt.scatter(abs(np.array(Depths)-3216), radioextent/popt[0])
 plt.plot(abs(np.array(Depths)-3216), rtest/p0_0316[2])
 plt.plot(abs(np.array(Depths)-3216), r/popt[0])
 plt.show()
-
 """
+

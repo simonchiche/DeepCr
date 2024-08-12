@@ -46,6 +46,7 @@ SurfacePos = np.copy(AntPos)[Nplane:]
 with open(SimDataPath + '/Traces_tot.pkl', 'rb') as file:
     Traces_tot = pickle.load(file)    
 
+Ex_tot_sim, Ey_tot_sim, Ez_tot_sim, Etot_sim = GetIntTraces(Traces_tot, len(Traces_tot))
 
 
 def GetCurvedDist(xarr, zarr):
@@ -102,3 +103,100 @@ if(Plot):
     EfieldMap(DepthPos, 1, Nplane, Etot_int[Nplane:], \
           "InclinedScaled", False, energy, theta, OutputPath)
 
+
+
+# =============================================================================
+#                       Comparison with simulations
+# =============================================================================
+
+
+
+condition = (AntPos[:Nplane, 0] >  -2713.3) & (AntPos[:Nplane, 0] <  2995.3) \
+& (AntPos[:Nplane, 1] >  -2950.7) & (AntPos[:Nplane, 1] <  2850.7)
+
+PosCut =np.array([AntPos[:Nplane, 0][condition], AntPos[:Nplane, 1][condition], \
+                  AntPos[:Nplane, 2][condition]]).T
+
+Etot_simcut = Etot_sim[:Nplane][condition]
+    
+plt.scatter(PosCut[:,0], PosCut[:,1], c= Etot_simcut, cmap ="jet")
+cbar = plt.colorbar()
+plt.xlabel("x [m]")
+plt.ylabel("y [m]")
+cbar.set_label("E [$\mu V/m$]")
+plt.legend(["Depth = %.f m" %(100)], loc ="upper right")
+plt.title("SimCut" + " map (E =$%.2f\,$EeV, $\\theta=%.1f^{\circ}$)" %(energy, theta), size =14)
+#plt.savefig\
+#            (OutputPath + "SimCut" + "EfieldMap_E%.2f_th%.1f_depth%1.f.pdf" \
+#             %(energy, theta, 100), bbox_inches = "tight")
+plt.show()
+
+# Comparison of the traces at the antenna level
+
+Error = np.zeros(len(PosCut))
+
+for i in range(len(PosCut)):
+    
+    points_sim = np.array([PosCut[i,0], PosCut[i,1]]).T
+    
+    points_scaled = np.array([DepthPos[:,0], DepthPos[:,1]]).T
+    
+    distances = np.linalg.norm(points_scaled - points_sim, axis=1) 
+    
+    kmin = np.argmin(distances)
+    
+    Error[i] = (Etot_simcut[i] - Etot_int[Nplane:][kmin])/Etot_simcut[i]
+    
+
+plt.plot(Error)
+plt.xlabel("Antenna ID")
+plt.ylabel("(Sim-Scaled)/Sim")
+#plt.savefig\
+#            (OutputPath + "ScaledInclined" + "RelErr_E%.2f_th%.1f_depth%1.f.pdf" \
+#             %(energy, theta, 100), bbox_inches = "tight")
+plt.show()    
+
+
+plt.scatter(PosCut[:,0], PosCut[:,1], c= Error, cmap ="jet")
+cbar = plt.colorbar()
+plt.xlabel("x [m]")
+plt.ylabel("y [m]")
+cbar.set_label("(Sim-Scaled)/Sim")
+plt.legend(["Depth = %.f m" %(100)], loc ="upper right")
+plt.title("SimCut" + " map (E =$%.2f\,$EeV, $\\theta=%.1f^{\circ}$)" %(energy, theta), size =14)
+plt.savefig\
+            (OutputPath + "ScaledInclined" + "RelErrMap_E%.2f_th%.1f_depth%1.f.pdf" \
+             %(energy, theta, 100), bbox_inches = "tight")
+plt.show()
+    
+    
+plt.scatter(PosCut[:,0], PosCut[:,1], c= abs(Error), cmap ="jet")
+cbar = plt.colorbar()
+plt.xlabel("x [m]")
+plt.ylabel("y [m]")
+cbar.set_label("(Sim-Scaled)/Sim")
+plt.legend(["Depth = %.f m" %(100)], loc ="upper right")
+plt.title("SimCut" + " map (E =$%.2f\,$EeV, $\\theta=%.1f^{\circ}$)" %(energy, theta), size =14)
+plt.savefig\
+            (OutputPath + "ScaledInclined" + "RelErrAbsMap_E%.2f_th%.1f_depth%1.f.pdf" \
+             %(energy, theta, 100), bbox_inches = "tight")
+plt.show()    
+    
+
+IntSim = 0
+
+for i in range(len(Etot_simcut)):
+    
+    IntSim = IntSim + Etot_simcut[i]*1.0/len(Etot_simcut)
+ 
+    
+IntScaled = 0
+
+for i in range(len(Etot_int)):
+    
+    IntScaled = IntScaled + Etot_int[i]*1.0/len(Etot_int)
+    
+    
+    
+    
+    
