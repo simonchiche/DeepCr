@@ -9,16 +9,17 @@ Created on Wed Jul 24 03:46:27 2024
 
 import numpy as np
 import matplotlib.pyplot as plt
-from IceCorePosition import core
-from GetXmaxCoordinate import getXmaxPosition
-from IncidentAngles import GetIncidentAngles
-from FunctionsPlotFluence import EfieldMap
-from FunctionsGetFluence import GetIntTraces, GetDepths
 import sys
+sys.path.append("/Users/chiche/Desktop/DeepCrSearch/Analysis/")
+from Modules.RayTracing.IceCorePosition import core
+from Modules.Shower.GetXmaxCoordinate import getXmaxPosition 
+from Modules.Shower.IncidentAngles import GetIncidentAngles 
+from Modules.Fluence.FunctionsPlotFluence import EfieldMap
+from Modules.Fluence.FunctionsGetFluence import GetIntTraces, GetDepths
 import os
 import pickle
 from datetime import datetime
-
+import subprocess
 
 Xmax = 765.70844
 phi = 0
@@ -36,6 +37,9 @@ AntPath = SimDataPath + "/Pos.npy"
 date = datetime.today().strftime('%Y-%m-%d')
 WorkPath = os.getcwd()
 OutputPath = WorkPath + "/Plots/" + SimDir + "/" + date + "/" 
+cmd = "mkdir -p " + OutputPath
+p =subprocess.Popen(cmd, cwd=os.getcwd(), shell=True)
+stdout, stderr = p.communicate()
 
 #  Loading antennas
 AntPos  = np.load(AntPath, allow_pickle=True)
@@ -164,9 +168,9 @@ plt.ylabel("y [m]")
 cbar.set_label("(Sim-Scaled)/Sim")
 plt.legend(["Depth = %.f m" %(100)], loc ="upper right")
 plt.title("SimCut" + " map (E =$%.2f\,$EeV, $\\theta=%.1f^{\circ}$)" %(energy, theta), size =14)
-plt.savefig\
-            (OutputPath + "ScaledInclined" + "RelErrMap_E%.2f_th%.1f_depth%1.f.pdf" \
-             %(energy, theta, 100), bbox_inches = "tight")
+#plt.savefig\
+#            (OutputPath + "ScaledInclined" + "RelErrMap_E%.2f_th%.1f_depth%1.f.pdf" \
+#             %(energy, theta, 100), bbox_inches = "tight")
 plt.show()
     
     
@@ -177,9 +181,9 @@ plt.ylabel("y [m]")
 cbar.set_label("(Sim-Scaled)/Sim")
 plt.legend(["Depth = %.f m" %(100)], loc ="upper right")
 plt.title("SimCut" + " map (E =$%.2f\,$EeV, $\\theta=%.1f^{\circ}$)" %(energy, theta), size =14)
-plt.savefig\
-            (OutputPath + "ScaledInclined" + "RelErrAbsMap_E%.2f_th%.1f_depth%1.f.pdf" \
-             %(energy, theta, 100), bbox_inches = "tight")
+#plt.savefig\
+#            (OutputPath + "ScaledInclined" + "RelErrAbsMap_E%.2f_th%.1f_depth%1.f.pdf" \
+#             %(energy, theta, 100), bbox_inches = "tight")
 plt.show()    
     
 

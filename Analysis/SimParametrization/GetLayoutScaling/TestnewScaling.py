@@ -9,7 +9,7 @@ Created on Mon Aug 12 17:26:06 2024
 import numpy as np
 import matplotlib.pyplot as plt
 
-from GetLayoutScaling import GetDepthScaling, GetEnergyScaling, GetZenithScaling, ScalingFactor
+from Modules.SimParam.GetLayoutScaling import GetDepthScaling, GetEnergyScaling, GetZenithScaling, ScalingFactor
 
 def GetDepthScalingOld(Depth):
 
@@ -43,8 +43,6 @@ def ScalingFactorOld(E, theta, Depth):
     k= GetDepthScalingOld(Depth)*GetEnergyScalingOld(E)*GetZenithScalingOld(theta)
     
     return k
-
-
 
 
 ScalingFactor(1e16, 0, 0)

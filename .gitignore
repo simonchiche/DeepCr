@@ -1,18 +1,28 @@
-/Biblio
-/Meetings
-/UsuefulPlots
-/Simulations
+# Ignore tous les fichiers
+*
 
-!/Analysis/*.py
+# Ne pas ignorer les répertoires (nécessaire pour traverser les sous-dossiers)
+!*/
 
-/Analysis/Data
-/Analysis/SimData
-/Analysis/Backup
-/Analysis/Plots
+# Ne pas ignorer les fichiers Python
+!*.py
 
-!/GenerateSims
-!/GenerateSims/Scripts
-/GenerateSims/Scripts/GenerateLayout/Plots
-/GenerateSims/Scripts/GenerateLayout/Plots/*
-/GenerateSims/Docs
-/GenerateSims/Sketch
+
+#/Biblio
+#/Meetings
+#/UsuefulPlots
+#/Simulations
+#/Software
+
+#/Analysis/Archive
+#/Analysis/SimData
+#/Analysis/Plots
+
+
+
+#!/GenerateSims
+#!/GenerateSims/Scripts
+#/GenerateSims/Scripts/GenerateLayout/Plots
+#/GenerateSims/Scripts/GenerateLayout/Plots/*
+#/GenerateSims/Docs
+#/GenerateSims/Sketch

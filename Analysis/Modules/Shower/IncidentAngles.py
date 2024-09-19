@@ -6,11 +6,12 @@ Created on Mon Jul 22 15:54:02 2024
 @author: chiche
 """
 
-
+import sys
 import numpy as np
 import matplotlib.pyplot as plt
-from GetXmaxCoordinate import getXmaxPosition
 
+sys.path.append("/Users/chiche/Desktop/DeepCrSearch/Analysis/")
+import Modules.Shower.GetXmaxCoordinate
 
 def GetIncidentAngles(XmaxPos, AntPos):
     

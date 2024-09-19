@@ -8,7 +8,7 @@ Created on Mon Apr 22 15:54:59 2024
 
 import numpy as np
 
-from FunctionsGetFluence import Norm
+from Modules.Fluence.FunctionsGetFluence import Norm
 import matplotlib.pyplot as plt
 
 

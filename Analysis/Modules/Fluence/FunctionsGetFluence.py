@@ -6,13 +6,15 @@ Created on Mon Apr 22 15:57:24 2024
 @author: chiche
 """
 
-
+import sys
 import numpy as np
 import glob
-from GetLayoutScaling import GetDepthScaling, GetEnergyScaling
+sys.path.append("/Users/chiche/Desktop/DeepCrSearch/Analysis/")
+import Modules.SimParam.GetLayoutScaling
+#from GetLayoutScaling import GetDepthScaling, GetEnergyScaling
 from scipy.integrate import trapz, simps
 from scipy.signal import hilbert
-import sys
+
 
 def Norm(Ax, Ay, Az):
     
