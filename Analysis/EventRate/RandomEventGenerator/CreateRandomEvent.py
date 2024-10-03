@@ -11,6 +11,7 @@ import random
 import numpy as np
 import matplotlib.pyplot as plt
 from SelectClosestEvent import LoadClosestEvent
+sys.path.append("/Users/chiche/Desktop/DeepCrSearch/Analysis/")
 from Modules.Shower.GetAntenaInfos import GetSurfaceAntennas, GetDepths, GetAntennaLayer
 
 savedir = os.getcwd() + "/Plots/"
@@ -26,6 +27,18 @@ def GetRandomCore(AntPos, glevel, Nrand):
     yrand = np.random.uniform(ymin, ymax, Nrand)
     
     return xrand, yrand, SurfaceAntennas
+
+def GetRandomCoreCircular(rlim, Nrand):
+    
+    rmin = 0
+    phimin = 0
+    phimax = 360
+    rrand = np.sqrt(np.random.uniform(rmin, rlim**2, Nrand))
+    phirand = np.random.uniform(phimin, phimax, Nrand)
+    xrand = rrand*np.cos(phirand*np.pi/180.0)
+    yrand = rrand*np.sin(phirand*np.pi/180.0)
+   
+    return xrand, yrand, rrand
 
 
 def ShiftAntennaPos(AntPos, phi_rand, glevel):
@@ -120,12 +133,14 @@ if(Test):
     xrand, yrand, SurfaceAntennas =\
     GetRandomCore(AntPos, glevel, 1)
     
+    xrandcirc, yrandcirc, rrand = GetRandomCoreCircular(500, 10)
+    
     plt.scatter(SurfaceAntennas[:,0], SurfaceAntennas[:,1], label ="antennas", s= 15)
-    plt.scatter(xrand, yrand, label ="random core", s= 15)
+    plt.scatter(xrandcirc, yrandcirc, label ="random core", s= 15)
     plt.xlabel("x [m]")
     plt.ylabel("y [m]")
     plt.legend()
-    if(True): plt.savefig(savedir +"RandomCores.pdf", bbox_inches = "tight")
+    if(True): plt.savefig(savedir +"RandomCoresCirc2.pdf", bbox_inches = "tight")
     plt.show()
     
     ShiftedPos, xrand, yrand = \

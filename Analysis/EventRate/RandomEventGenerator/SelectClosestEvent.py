@@ -11,7 +11,6 @@ import numpy as np
 import glob
 import pickle
 
-
 def GetSimParameters(SimPath):
     
     Simfiles =  glob.glob(SimPath + "/*")
