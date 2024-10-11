@@ -6,10 +6,11 @@ Created on Fri Sep 20 11:00:50 2024
 @author: chiche
 """
 
-
+import sys
 import numpy as np
 import glob
 import pickle
+import matplotlib.pyplot as plt
 
 def GetSimParameters(SimPath):
     
@@ -61,7 +62,7 @@ def LoadClosestEvent(E_rand, theta_rand, phi_rand, SimPath, DataPath):
         Traces_G = pickle.load(file)
     AntPos  = np.load(SimDataPath + "/Pos.npy", allow_pickle=True)
     
-    return Traces_C, Traces_G, AntPos
+    return Traces_C, Traces_G, AntPos, Selfile
 
 
 # Testing of the code

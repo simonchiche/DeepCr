@@ -16,31 +16,66 @@ conversion_factor_integrated_signal = 2.65441729e-3 * 6.24150934e18  # to conver
 conversion_fieldstrength_cgs_to_SI = 2.99792458e4
 
 VERSION_MAJOR = 0
-VERSION_MINOR = 4
+VERSION_MINOR = 5
 
 def gaisser_hillas(X, N, X0, Xmax, p0, p1=0, p2=0):
     l = p0 + p1 * X + p2 * X ** 2
     power = (Xmax - X0) / l
-    if(type(X) == float):
-        if(power < 0):
-            return 0
-        if(X < X0):
-            return 0
-        return N * ((X - X0) / (Xmax - X0)) ** (power) * np.exp((Xmax - X) / l)
-    else:
-        if(np.sum(l < 0)):
-            # print "some l < 0, returning infinity", X[l < 0]
+
+    if np.sum(l < 0):
+        # print("Some l are negative")
             return np.inf
-        if(np.sum(power < 0)):
-            # print "some  power < 0, returning infinity", X[power < 0]
+
+    if np.sum(power < 0):
+        # print("Some power are negative")
             return np.inf
-        result = np.zeros_like(X)
-        mask = (X - X0) >= 0
-        mask = mask & (power > 0)
-        result[mask] = N * ((X[mask] - X0) / (Xmax - X0)) ** (power[mask]) * np.exp((Xmax - X[mask]) / l[mask])
-        result[power > 100] = 0
-        result = np.nan_to_num(result)
-        return result
+
+    if np.sum(power > 100):
+        return np.inf
+
+    result = np.zeros_like(X)
+    mask = (X - X0) >= 0
+    result[mask] = N * ((X[mask] - X0) / (Xmax - X0)) ** (power[mask]) * np.exp((Xmax - X[mask]) / l[mask])
+    result = np.nan_to_num(result)
+
+    return result
+
+
+def clean_corrupt_long_profiles(dE_data):
+    """
+    The longitudinal profile provided by CORSIKA (DAT*.long file)
+    can have unphysical spikes. Reject any sample which is 20 % higher
+    than the previous. This should not happening for a fine sampled profile
+    """
+
+    yy = dE_data[9][:-2]  # Skip two last samples. They can contain energy deposit in ground plane
+    n = 0
+    while True:
+        yy_max = np.amax(yy)
+        yy_max2 = np.amax(yy[yy < yy_max])
+
+        if yy_max > 1.2 * yy_max2:
+            mask = yy < yy_max
+            dE_data = dE_data[:, np.append(mask, [True, True])]  # include two last bins
+            yy = yy[mask]
+            n += 1
+        else:
+            break
+
+    if n:
+        print("Reject {} samples in longitudinal profile".format(n))
+
+    return dE_data
+
+
+def fit_gaisser_hillas(xx, yy):
+    # fit Gaisser Hillas to longitudinal profile anyway (fir in CORSIKA not accurate for high zenith angle)
+    # print("Performing Gaisser-Hillas fit on longitudinal profile ...")
+
+    popt, pcov = optimize.curve_fit(gaisser_hillas, xx, yy, p0=[yy.max(), 0, xx[yy.argmax()], 20], maxfev=3000)
+    popt2, pcov = optimize.curve_fit(gaisser_hillas, xx, yy, p0=[popt[0], popt[1], popt[2], popt[3], 0, 0], maxfev=3000)
+
+    return popt2, pcov
 
 
 def read_input_file(hdf5_file, inp_file):
@@ -77,9 +112,15 @@ def read_input_file(hdf5_file, inp_file):
     except KeyError:
         f_h5_inputs.attrs["ATMOD"] = 1  # CORSIKA default, U.S standard by Linsley
 
+    if "ATMFILE" in inp_dict:
+        atm_entry = str(inp_dict["ATMFILE"][0])
+        print("ATMFILE was set in *inp, store ATMOD = -1")
+        f_h5_inputs.attrs["ATMFILE"] = atm_entry
+        f_h5_inputs.attrs["ATMOD"] = -1
+
 
 def read_reas_file(hdf5_file, reas_file):
- s
+
     if not isinstance(reas_file, io.IOBase):
         reas_file = open(reas_file, "r")
 
@@ -109,7 +150,7 @@ def read_reas_file(hdf5_file, reas_file):
                    "PrimaryParticleEnergy", "PrimaryParticleType", "DepthOfShowerMaximum", "DistanceOfShowerMaximum",
                    "MagneticFieldStrength", "MagneticFieldInclinationAngle"]:
             if key not in ["EventNumber", "RunNumber", "GPSSecs", "GPSNanoSecs", "PrimaryParticleType"]:
-                f_h5_reas.attrs[key] = np.float(value)
+                f_h5_reas.attrs[key] = float(value)
             else:
                 f_h5_reas.attrs[key] = int(value)
         else:
@@ -159,29 +200,60 @@ def read_longitudinal_profile(hdf5_file, long_file):
     long_file.close()
 
 
-def read_antenna_data(hdf5_file, list_file, antenna_folder):
+def read_atm_file(hdf5_file, atm_file_path):
 
-    if not isinstance(list_file, io.IOBase):
-        list_file = open(list_file, "r")
+    heights, refractive_index = np.genfromtxt(atm_file_path, unpack=True, skip_header=6)
+    refractive_index_profile = np.array([heights, refractive_index]).T
 
-    lines = [item for item in list_file.readlines() if item != "\n"]  # skip empty lines
-    lines = np.array([item for item in lines if not item.startswith("#")])  # skip comments
-    list_file.close()
+    f_h5_atm = hdf5_file.create_group("atmosphere_model")
 
-    observers = hdf5_file.create_group('observers')
+    data_set = f_h5_atm.create_dataset(
+        "RefractiveIndexProfile", refractive_index_profile.shape, dtype="f")
+    data_set[...] = refractive_index_profile
 
-    for line in lines:
+
+    atm_file = open(atm_file_path, "rb")
+    lines = atm_file.readlines()
+
+    # skip first entry (0), conversion cm -> m
+    h = np.array(lines[1].strip(b"\n").split()[1:], dtype=float) / 100
+    a = np.array(lines[2].strip(b"\n").split(), dtype=float) * 1e4
+    b = np.array(lines[3].strip(b"\n").split(), dtype=float) * 1e4
+    c = np.array(lines[4].strip(b"\n").split(), dtype=float) * 1e-2
+    atm_file.close()
+
+    f_h5_atm.attrs["h"] = h
+    f_h5_atm.attrs["a"] = a
+    f_h5_atm.attrs["b"] = b
+    f_h5_atm.attrs["c"] = c
+
+
+def read_antenna_data(hdf5_file, antenna_list, antenna_folder, skip_antenna_pattern=None, antenna_name_prefix="raw_", hdf5_group_name="observers"):
+
+
+    if hdf5_group_name not in hdf5_file:
+        observers = hdf5_file.create_group(hdf5_group_name)
+    else:
+        observers = hdf5_file[hdf5_group_name]
+
+    for line in antenna_list:
         ll = line.strip().split()
         antenna_position = ll[2:5]
         antenna_label = ll[5]
-        antenna_file = os.path.join(antenna_folder, "raw_%s.dat" % antenna_label)
+
+        #skip_antenna_pattern = "\+"
+        if skip_antenna_pattern is not None and \
+		re.search(skip_antenna_pattern, antenna_label) is None:
+            continue
+
+        antenna_file = os.path.join(antenna_folder, f"{antenna_name_prefix}{antenna_label}.dat")
 
         data = np.genfromtxt(antenna_file)
-        data_set = observers.create_dataset(antenna_label, data.shape, dtype=np.float)
+        data_set = observers.create_dataset(antenna_label, data.shape, dtype=float)
         data_set[...] = data
 
-        data_set.attrs['position'] = np.array(antenna_position, dtype=np.float)
-        data_set.attrs['name'] = antenna_label
+        data_set.attrs['position'] = np.array(antenna_position, dtype=float)
+        data_set.attrs['name'] = f"{antenna_name_prefix}{antenna_label}"
 
         # there seems to be a problem when storing a list of unicodes in an attribute (is the case for python3). followed the fix from:
         # https://github.com/h5py/h5py/issues/289
@@ -189,7 +261,7 @@ def read_antenna_data(hdf5_file, list_file, antenna_folder):
             data_set.attrs['additional_arguments'] =  [a.encode('utf8') for a in ll[6:]]
 
 
-def write_coreas_hdf5_file(reas_filename, output_filename, f_h5=None):
+def write_coreas_hdf5_file(reas_filename, output_filename, f_h5=None, atm_file=None, ignore_atm_file=False):
 
     # create hdf5 file
     if f_h5 is None:
@@ -200,25 +272,57 @@ def write_coreas_hdf5_file(reas_filename, output_filename, f_h5=None):
     # read all parameter from the SIM??????.reas file
     read_reas_file(f_h5, reas_filename)
 
-    # print error message in case CorsikaParameterFile was not specified in the .reas file
-    inp_filename = f_h5['CoREAS'].attrs['CorsikaParameterFile']
-    if len(inp_filename) == 0:
-        sys.exit("CorsikaParameterFile was not specified in the .reas file, aborting!")
-    finp = open(os.path.join(os.path.dirname(reas_filename), inp_filename), "r")
+    if args.store_input_file_in_hdf5:
+        # print error message in case CorsikaParameterFile was not specified in the .reas file
+        inp_filename = f_h5['CoREAS'].attrs['CorsikaParameterFile']
+        if len(inp_filename) == 0:
+            sys.exit("CorsikaParameterFile was not specified in the .reas file, aborting!")
+        finp = open(os.path.join(os.path.dirname(reas_filename), inp_filename), "r")
 
-    # read cards from .inp file and stores them into "inputs" group in f_h5 file
-    read_input_file(f_h5, finp)
-  
-    # read in long file
-    long_filename = "DAT" + os.path.splitext(os.path.basename(reas_filename))[0][-6:] + ".long"
-    longinp = io.open(os.path.join(os.path.dirname(reas_filename), long_filename), "r", encoding="UTF-8")
-    read_longitudinal_profile(f_h5, longinp)
+        # read cards from .inp file and stores them into "inputs" group in f_h5 file
+        read_input_file(f_h5, finp)
+
+        if "ATMFILE" in f_h5['inputs'].attrs:
+            print("Found following path for ATMFILE: %s" %
+                f_h5['inputs'].attrs["ATMFILE"])
+            atm_file_full_path = f_h5['inputs'].attrs["ATMFILE"]
+            atm_file_name = os.path.basename(atm_file_full_path)
+
+            if atm_file is not None:
+                print("Use user specified ATMFILE: %s" % atm_file)
+                read_atm_file(f_h5, atm_file)
+            elif os.path.exists(atm_file_full_path):
+                print("Read ATMFILE from: %s" % atm_file_full_path)
+                read_atm_file(f_h5, atm_file_full_path)
+            elif os.path.exists(atm_file_name):
+                print("Read ATMFILE from: %s" % atm_file_name)
+                read_atm_file(f_h5, atm_file_name)
+            elif ignore_atm_file:
+                print("Do not read any ATMFILE")
+                pass
+            else:
+                sys.exit("Could not find the atm file in %s or %s. Full stop!" %
+                        (atm_file_full_path, atm_file_name))
+
+    if args.store_long_file_in_hdf5:
+        # read in long file
+        long_filename = "DAT" + os.path.splitext(os.path.basename(reas_filename))[0][-6:] + ".long"
+        longinp = io.open(os.path.join(os.path.dirname(reas_filename), long_filename), "r", encoding="UTF-8")
+        read_longitudinal_profile(f_h5, longinp)
 
     # read in antenna data
     listfile = open(os.path.splitext(reas_filename)[0] + ".list", "r")
     number = os.path.splitext(os.path.basename(reas_filename))[0][3:]
+    with open(os.path.splitext(reas_filename)[0] + ".list", "r") as listfile:
+        antennalist = [item for item in listfile.readlines() if item != "\n"]  # skip empty lines
+        antennalist = np.array([item for item in antennalist if not item.startswith("#")])  # skip comments
+
     antenna_folder = os.path.join(os.path.dirname(reas_filename), "SIM%s_coreas" % number)
-    read_antenna_data(f_h5['CoREAS'], listfile, antenna_folder)
+    read_antenna_data(f_h5['CoREAS'], antennalist, antenna_folder)
+
+    if args.add_faerie_simulation:
+        antenna_folder2 = os.path.join(os.path.dirname(reas_filename), "SIM%s_geant" % number)
+        read_antenna_data(f_h5['CoREAS'], antennalist, antenna_folder2, hdf5_group_name="observers_geant")
 
     return f_h5
 
@@ -258,13 +362,31 @@ def write_highlevel_attributes(f_h5_hl, f_h5):
     f_h5_hl.attrs["Ehad_cut"] = Ehad_cut
     f_h5_hl.attrs["Eneutrino"] = Eneutrino
 
-    # fit Gaisser Hillas to longitudinal profile anyway (fir in CORSIKA not accurate for high zenith angle)
-    print("Gaisser-Hillas Fit results could not be found in the .long file. Performing fit on longitudinal profile ...")
-    xx = dE_data[0][:-2]
-    yy = dE_data[9][:-2] * 1e-9  # sum of energy deposit in GeV
-    popt, pcov = optimize.curve_fit(gaisser_hillas, xx, yy, p0=[yy.max(), 0, xx[yy.argmax()], 20])
-    popt, pcov = optimize.curve_fit(gaisser_hillas, xx, yy, p0=[popt[0], popt[1], popt[2], popt[3], 0, 0])
-    f_h5_hl.attrs["gaisser_hillas_dEdX"] = popt
+    # From offline, calorimetric energy
+    nrow_ground_plane = 2  # SLANT = 2, NonSLANT = 1
+    muonFraction = 0.575
+    hadronFraction = 0.  #0.261 < -- Tanguy thinks this should be zero
+    Eelec = np.sum(dE_data[9, :-nrow_ground_plane]) - np.sum(dE_data[8, :-nrow_ground_plane]) - \
+        muonFraction * np.sum(dE_data[5, :-nrow_ground_plane]) - \
+        hadronFraction * np.sum(dE_data[7: -nrow_ground_plane])
+
+    hadronGroundFraction = 0.390
+    Eelec += np.sum((1 - hadronGroundFraction) * \
+            dE_data[7, -nrow_ground_plane:] + dE_data[6, -nrow_ground_plane:] + \
+            dE_data[4, -nrow_ground_plane:] + dE_data[2, -nrow_ground_plane:] + \
+            dE_data[3, -nrow_ground_plane:] + dE_data[1, -nrow_ground_plane:])
+    f_h5_hl.attrs["Eelec"] = Eelec  # calorimetric energy?!
+
+    if 'Gaisser-Hillas-Fit' in f_h5["atmosphere"].attrs:
+        f_h5_hl.attrs['Gaisser-Hillas-Fit'] = f_h5["atmosphere"].attrs['Gaisser-Hillas-Fit']
+
+    if 1:
+        # Skip two last samples. They can contain energy deposit in ground plane
+        dE_data = clean_corrupt_long_profiles(dE_data)
+        depths = dE_data[0, :-2]
+        energy_deposit = dE_data[9, :-2]
+        popt, pcov = fit_gaisser_hillas(depths, energy_deposit)
+        f_h5_hl.attrs["gaisser_hillas_dEdX"] = popt
 
 
 def write_coreas_highlevel_file(output_filename, f_h5, args, f_h5_sephl=None):
@@ -283,6 +405,11 @@ def write_coreas_highlevel_file(output_filename, f_h5, args, f_h5_sephl=None):
     for (attr, value) in f_h5['inputs'].attrs.items():
         f_h5_hl_inputs.attrs[attr] = value
 
+    # Copy atmosphere_model information into highlevel file (only attributes)
+    f_h5_hl_atmosphere_model = f_h5_sephl.create_group("atmosphere_model")
+    for (attr, value) in f_h5['atmosphere_model'].attrs.items():
+        f_h5_hl_atmosphere_model.attrs[attr] = value
+
     f_h5_hl = f_h5_sephl.create_group("highlevel")
     write_highlevel_attributes(f_h5_hl, f_h5)
     f_h5_inputs = f_h5['inputs']
@@ -294,7 +421,7 @@ def write_coreas_highlevel_file(output_filename, f_h5, args, f_h5_sephl=None):
     B_declination = 0
 
     B_strength = (Bx ** 2 + Bz ** 2) ** 0.5
-    magnetic_field_vector = rdhelp.spherical_to_cartesian(rdhelp.get_magneticfield_zenith(B_inclination), B_declination + np.pi * 0.5)  # in auger cooordinates north is + 90 deg
+    magnetic_field_vector = rdhelp.spherical_to_cartesian(B_inclination + np.pi / 2, B_declination + np.pi * 0.5)  # in auger cooordinates north is + 90 deg
 
     ctrans = coordinatesystems.cstrafo(zenith, azimuth, magnetic_field_vector=magnetic_field_vector)
 
@@ -417,10 +544,10 @@ def write_coreas_highlevel_file(output_filename, f_h5, args, f_h5_sephl=None):
                 data[:, 0] = tstep * np.arange(dlength) + data[0, 0]
 
             # add zeros to beginning and end of the trace to increase the frequency resolution (this is not a resampling)
-            #n_samples = np.int(np.round(2048e-9 * 5 / tstep))
-            n_samples = np.int(np.round(1 / tstep / (args.frequencyResolution * 1e3)))
+            #n_samples = int(np.round(2048e-9 * 5 / tstep))
+            n_samples = int(np.round(1 / tstep / (args.frequencyResolution * 1e3)))
             #increase number of samples to a power of two for FFT performance reasons
-            n_samples = np.int(2**math.ceil(math.log(n_samples,2)))
+            n_samples = int(2 ** math.ceil(math.log(n_samples, 2)))
 
             n_start = (n_samples - len(data[:, 0])) // 2
             padded_trace = np.zeros((n_samples, 3))
@@ -662,6 +789,24 @@ if __name__ == '__main__':
     parser.add_argument("--stokes_window", type=float, default=25.,
                         help="window around highest peak to calculate stokes parameter, in ns")
 
+    parser.add_argument("--ignoreATMfile", action="store_true",
+                        help="If a ATMFILE was used for the simulation but can"
+                        " not be found choose to ignore it (Default: false).")
+
+    parser.add_argument("--atmfile", type=str, default=None,
+                        help='Path to a GDAS atm file. Only required if "ATMFILE" specified in *inp file.'
+                        ' If not provided check for file and location specified in *inp file.')
+
+    parser.add_argument("--not_store_input_file", action="store_false",
+                        dest="store_input_file_in_hdf5", help="")
+
+    parser.add_argument("--not_store_long_file", action="store_false",
+                        dest="store_long_file_in_hdf5", help="")
+
+    parser.add_argument("--add_faerie_simulation", action="store_true",
+                        help="If True, add the electric fields generated by FAERIE (GEANT) to the hdf5 file. "
+                        "The electriec fields are expected to be in the same format and units as CoREAS and in the folder `SIM??????_geant`")
+
     args = parser.parse_args()
 
 
@@ -675,7 +820,8 @@ if __name__ == '__main__':
             output_filename = os.path.join(args.output_directory, output_filename)
 
         if os.path.splitext(args.input_file)[1] != ".hdf5":
-            f_h5 = write_coreas_hdf5_file(reas_filename, output_filename)
+            f_h5 = write_coreas_hdf5_file(
+                reas_filename, output_filename, atm_file=args.atmfile, ignore_atm_file=args.ignoreATMfile)
 
         else:
             f_h5 = h5py.File(args.input_file, "r")
@@ -717,5 +863,6 @@ if __name__ == '__main__':
         if(args.output_directory is not None):
             output_filename = os.path.join(args.output_directory, output_filename)
 
-        f_h5 = write_coreas_hdf5_file(reas_filename, output_filename)
+        f_h5 = write_coreas_hdf5_file(
+            reas_filename, output_filename, atm_file=args.atmfile, ignore_atm_file=args.ignoreATMfile)
         f_h5.close()

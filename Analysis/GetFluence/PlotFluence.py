@@ -28,12 +28,14 @@ from scipy.optimize import curve_fit
 from Modules.Fluence.FunctionsRadiationEnergy import GetFluence, GetRadiationEnergy
 
 SimDir = "DeepCrLib"
-SimName = "Rectangle_Proton_0.1_34_0_1"
+SimName = "Rectangle_Proton_0.1_0_0_1"
 
 # We create a directory where the outputs are stored
 date = datetime.today().strftime('%Y-%m-%d')
 WorkPath = os.getcwd()
 OutputPath = WorkPath + "/Plots/" + SimDir + "/" + date + "/" 
+#print(OutputPath)
+#sys.exit()
 cmd = "mkdir -p " + OutputPath
 p =subprocess.Popen(cmd, cwd=os.getcwd(), shell=True)
 stdout, stderr = p.communicate()
@@ -166,8 +168,8 @@ EfieldMap(Pos, Nlay, Nplane, Etot_int, "Total", \
           False, energy, theta, OutputPath)
 
 #Total emission from peak
-EfieldMap(Pos, Nlay, Nplane, np.maximum(EtotC, EtotG), "Total",\
-          False, energy, theta, OutputPath)
+#EfieldMap(Pos, Nlay, Nplane, np.maximum(EtotC, EtotG), "Total",\
+#          False, energy, theta, OutputPath)
 
 # Geant over CoREAS
 EfieldMap(Pos, Nlay, Nplane, EtotG_int/EtotC_int, "GeantoverCoreas",\
@@ -190,7 +192,7 @@ EfieldMap(Pos, Nlay, Nplane, EtotG_int/EtotC_int, "GeantoverCoreas",\
 # =============================================================================
     
 plot_polarisation(Pos[:Nplane,0], Pos[:Nplane,1], \
-                  EtotC[:Nplane], -EyG[:Nplane], ExG[:Nplane], OutputPath)
+                  EtotC_int[:Nplane], -EyC_int[:Nplane], ExC_int[:Nplane], OutputPath)
     
 # =============================================================================
 #                    Parametrization of the spacing

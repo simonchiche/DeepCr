@@ -82,7 +82,7 @@ def plot_polarisation(vxb, vxvxb, Etot_sp, Evxb, Evxvxb, path):
     #plt.ylim(-200,200)
     #plt.title(r'$\phi$ $= %.2f \degree$, $\theta$ $= %.2f \degree$, E = %.3f Eev' %(azimuth, zenith, energy), fontsize = 12)
     #cbar.set_label(r"$ E\ [\mu V/m]$")
-    plt.quiver(vxb, vxvxb, Evxb/2000, Evxvxb/2000, scale =1, width=0.05)
+    plt.quiver(vxb, vxvxb, Evxb/200, Evxvxb/200)
     #plt.xlim(-120,120)
     #plt.ylim(-120,120)
     plt.tight_layout()
