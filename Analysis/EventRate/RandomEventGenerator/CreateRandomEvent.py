@@ -205,19 +205,18 @@ def save_traces(Traces):
     # Iterate through the dictionary keys and save each array to a file
     for i in Traces:
         filename = f"raw_ch{i}.dat"
-        np.savetxt(filename, Traces[i], fmt="%.8e\t%.8e\t%.8e")
-        print(f"Saved {filename}")
+        np.savetxt(filename, Traces[i])
+        #print(f"Saved {filename}")
         
     return
     
-def SaveEvent(AntPos, Traces_C, Traces_G, dirname, LibPath, j):
+def SaveEvent(AntPos, Traces_C, Traces_G, dirname, LibPath, DataFilesPath, j):
     
     savedir = LibPath + "/" + dirname + "_" + str(j)
-    print(savedir)
     try:
         os.mkdir(savedir)
     except FileExistsError:
-        print("Directory already exists.")
+        pass #print("Directory already exists.")
     os.chdir(savedir)
     CoreasFolder = savedir + "/" + "SIM000001_coreas"
     GeantFolder = savedir + "/" + "SIM000001_geant"
@@ -225,7 +224,7 @@ def SaveEvent(AntPos, Traces_C, Traces_G, dirname, LibPath, j):
         os.mkdir(CoreasFolder)
         os.mkdir(GeantFolder)
     except FileExistsError:
-        print("Directory already exists.")
+        pass #print("Directory already exists.")
     
     os.chdir(CoreasFolder)
     save_traces(Traces_C)
@@ -242,15 +241,15 @@ def SaveEvent(AntPos, Traces_C, Traces_G, dirname, LibPath, j):
     generate_antenna_file(AntPos[:,0], AntPos[:,1], AntPos[:,2], \
                           savedir, filename="SIM000001.list")
     
-    source = "/Users/chiche/Desktop/SimFiles/" + str(dirname.split("_")[2]) + \
+    source = DataFilesPath + str(dirname.split("_")[2]) + \
     "/" + str(dirname.split("_")[3])  + "/"
-    print(source)
+    #print(source)
 
     for file_name in os.listdir(source):
         full_file_name = os.path.join(source, file_name)
         if os.path.isfile(full_file_name):
             shutil.copy(full_file_name, savedir)
-    return       
+    return savedir    
     
 Test = False
 if(Test):

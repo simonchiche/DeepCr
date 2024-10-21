@@ -321,7 +321,6 @@ def write_coreas_hdf5_file(reas_filename, output_filename, f_h5=None, atm_file=N
     read_antenna_data(f_h5['CoREAS'], antennalist, antenna_folder)
 
     if args.add_faerie_simulation:
-        sys.exit()
         antenna_folder2 = os.path.join(os.path.dirname(reas_filename), "SIM%s_geant" % number)
         read_antenna_data(f_h5['CoREAS'], antennalist, antenna_folder2, hdf5_group_name="observers_geant")
 

@@ -53,7 +53,7 @@ def GetClosestEvent(E_rand, theta_rand, phi_rand, SimPath):
 def LoadClosestEvent(E_rand, theta_rand, phi_rand, SimPath, DataPath):
     
     Selfile = GetClosestEvent(E_rand, theta_rand, phi_rand, SimPath)
-    print(Selfile)
+    print("Current event " + Selfile)
     SimDataPath = DataPath + "/" + Selfile 
     
     with open(SimDataPath + '/Traces_C.pkl', 'rb') as file:

@@ -12,11 +12,14 @@ import matplotlib.pyplot as plt
 from GetRandomDirection import GetRandomTheta, GetRandomPhi
 from GenRandomE import GetRandomE
 from CreateRandomEvent import GetDeepAntennaLayerEvents, SaveEvent
+from RunHDF5converter import RunHDF5converter
 
 #SimulationPath
 SimPath = "/Users/chiche/Desktop/DeepCrSearch/Simulations/DeepCrLib"
 DataPath = "/Users/chiche/Desktop/DeepCrSearch/Analysis/SimData"
-LibPath = "/Users/chiche/Desktop/REGevents"
+DataFilesPath = "/Users/chiche/Desktop/REGevents/SimFiles/"
+LibPath = "/Users/chiche/Desktop/REGevents/Events"
+HDF5path = "/Users/chiche/Desktop/REGevents/HDF5files"
 
 # ground level in meters
 glevel =3216
@@ -46,18 +49,14 @@ for i in range(len(Erand)):
     
     AntPow, Traces_C_pow, Traces_G_pow, xrand, yrand, Selfile = \
     GetDeepAntennaLayerEvents(0.1, 10, 24, glevel, SimPath, DataPath)
-
-    Ncores = 5
-    IdAnt = np.random.randint(0, len(AntPow), Ncores)
-    AntPow =  AntPow[IdAnt,:]
-    Traces_C_deep = {k: Traces_C_pow[k] for k in IdAnt}
-    Traces_G_deep = {k: Traces_G_pow[k] for k in IdAnt}
-
-    for j in range(Ncores):
         
-        SaveEvent(AntPow, Traces_C_deep, Traces_G_deep, Selfile, LibPath, j)
+    savedir = \
+    SaveEvent(AntPow, Traces_C_pow, Traces_G_pow, Selfile, LibPath, DataFilesPath, i)
     
+    print("saved")
+    
+    RunHDF5converter(HDF5path, savedir)
+
     sys.exit()
    
         
-         
