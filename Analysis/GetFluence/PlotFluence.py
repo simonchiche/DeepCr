@@ -19,16 +19,17 @@ from Modules.SimParam.GetLayoutScaling import GetDepthScaling, GetEnergyScaling
 from scipy.interpolate import interp1d
 import scipy
 from Modules.Fluence.FunctionsGetFluence import  Norm, LoadTraces, GetPeakTraces, Traces_cgs_to_si, GetDepths, CorrectScaling, CombineTraces, CorrectLength, GetIntTraces, GetIntTracesSum, GetRadioExtent
-from Modules.Fluence.FunctionsPlotFluence import EfieldMap, PlotLDF, PlotTraces, plot_polarisation, PlotMaxTraces, PlotAllTraces, PlotLayer, PlotGivenTrace
+from Modules.Fluence.FunctionsPlotFluence import EfieldMap, PlotLDF, PlotTraces, plot_polarisation, PlotMaxTraces, PlotAllTraces, PlotLayer, PlotGivenTrace, PlotAllChannels
 from CleanCoreasTraces import CleanCoreasTraces
 from Modules.SimParam.PlotRadioSimExtent import PlotFillingFactor, PlotRadioSimExtent
 from scipy.interpolate import griddata
 from datetime import datetime
 from scipy.optimize import curve_fit
+from scipy.signal import butter, filtfilt
 from Modules.Fluence.FunctionsRadiationEnergy import GetFluence, GetRadiationEnergy
 
-SimDir = "DeepCrLib"
-SimName = "Rectangle_Proton_0.1_0_0_1"
+SimDir =     "DeepCrLib" #"InterpSim"
+SimName = "Rectangle_Proton_0.01_47_0_1"
 
 # We create a directory where the outputs are stored
 date = datetime.today().strftime('%Y-%m-%d')
@@ -40,7 +41,7 @@ cmd = "mkdir -p " + OutputPath
 p =subprocess.Popen(cmd, cwd=os.getcwd(), shell=True)
 stdout, stderr = p.communicate()
 
-font = {'family' : 'normal',
+font = {'family' : 'DejaVu Sans',
         'weight' : 'normal',
         'size'   : 14}
 
@@ -57,7 +58,7 @@ Path =  "/Users/chiche/Desktop/DeepCrSearch"\
 energy = float(Path.split("/")[-2].split("_")[2])
 theta  = float(Path.split("/")[-2].split("_")[3])
 
-SimDataPath = "/Users/chiche/Desktop/DeepCrSearch/Analysis/SimData/" + SimName 
+SimDataPath = "/Users/chiche/Desktop/DeepCrSearch/Analysis/SimData/" + SimDir + "/" + SimName 
 
 if(not(os.path.exists(SimDataPath))):
     
@@ -136,7 +137,10 @@ PlotMaxTraces(Traces_C, EtotC, 5)
 # Plot all traces above a given threshold
 PlotAllTraces(Nant, Traces_tot, 100, 5)
 
-PlotGivenTrace(Traces_C, 310, "z")
+PlotGivenTrace(Traces_C, 310, "y")
+
+PlotAllChannels(Traces_C, 1068)
+PlotAllChannels(Traces_G, 1068)
 
 # =============================================================================
 #                         Compute Fluence
@@ -149,7 +153,7 @@ if(max(Etot_int)>100*Etot_int[np.argsort(Etot_int)[1]]):
 
 
 EfieldMap(Pos, Nlay, Nplane, EtotC_int, "CoreasHilbert", \
-          False, energy, theta, OutputPath)
+          True, energy, theta, OutputPath)
 
 # Coreas Normalized
 EfieldMap(Pos, Nlay, Nplane, EtotC_int/max(EtotC_int), "Coreas",\
@@ -190,7 +194,7 @@ EfieldMap(Pos, Nlay, Nplane, EtotG_int/EtotC_int, "GeantoverCoreas",\
 # =============================================================================
 #                            Polarisation
 # =============================================================================
-    
+
 plot_polarisation(Pos[:Nplane,0], Pos[:Nplane,1], \
                   EtotC_int[:Nplane], -EyC_int[:Nplane], ExC_int[:Nplane], OutputPath)
     
@@ -208,6 +212,56 @@ print(radioextent/simextent)
 PlotRadioSimExtent(Depths, radioextent, simextent)
 PlotFillingFactor(Depths, radioextent, simextent)
 
+
+
+def bandpass_filter(signal, fs, lowcut, highcut, order=4):
+    """
+    Apply a bandpass filter to a signal.
+    
+    Parameters:
+    - signal: array-like, the input signal (E(t)).
+    - fs: float, the sampling frequency of the signal in Hz.
+    - lowcut: float, the lower bound of the frequency band in Hz.
+    - highcut: float, the upper bound of the frequency band in Hz.
+    - order: int, the order of the Butterworth filter (default is 4).
+    
+    Returns:
+    - filtered_signal: array-like, the filtered signal.
+    """
+    nyquist = 0.5 * fs  # Nyquist frequency
+    low = lowcut / nyquist
+    high = highcut / nyquist
+
+    # Design the Butterworth bandpass filter
+    b, a = butter(order, [low, high], btype='band')
+
+    # Apply the filter using filtfilt for zero phase shift
+    filtered_signal = filtfilt(b, a, signal)
+    return filtered_signal
+
+
+fs = 5e9
+lowcut = 50e6  # Lower bound of the frequency band in Hz (50 MHz)
+highcut = 2e9  # Upper bound of the frequency band in Hz (2000 MHz)
+
+Eg_f = np.zeros(len(Traces_G))
+filtered_signal = []
+for i in range(len(Traces_G)):
+    Exg_f = bandpass_filter(Traces_G[i][:,1], fs, lowcut, highcut)
+    Eyg_f = bandpass_filter(Traces_G[i][:,2], fs, lowcut, highcut)
+    Ezg_f = bandpass_filter(Traces_G[i][:,3], fs, lowcut, highcut)
+    
+    Etotg_f = np.sqrt(Exg_f**2 + Eyg_f**2 + Ezg_f**2)
+    #filtered_signal.append(bandpass_filter(Traces_G[i][:,2], fs, lowcut, highcut))
+    Eg_f[i] = max(abs(Etotg_f))
+    
+#filtered_signal =np.array(filtered_signal)
+
+
+
+# Geant 
+EfieldMap(Pos, Nlay, Nplane, Eg_f, "GeantHilbert",\
+          True, energy, theta, OutputPath)
 
 
 

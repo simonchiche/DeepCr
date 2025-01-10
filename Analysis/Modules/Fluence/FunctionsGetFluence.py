@@ -7,6 +7,7 @@ Created on Mon Apr 22 15:57:24 2024
 """
 
 import sys
+import os
 import numpy as np
 import glob
 sys.path.append("/Users/chiche/Desktop/DeepCrSearch/Analysis/")
@@ -55,7 +56,11 @@ def LoadTraces(Path):
     for i in range(Nant):
         
         Cdata[i] = Cpath + "/raw_ch%.d.dat" %i
+        
         Gdata[i] = Gpath + "/Antenna%.d.dat" %i
+    
+        if(not(os.path.exists(Gdata[i]))): print(i)
+    #sys.exit()
     
     #Nlay = 42
     
@@ -66,8 +71,11 @@ def LoadTraces(Path):
     
     for i in range(Nant):
         if(i%10==0): print("%.d/%.d" %(i,Nant))
-        
-        Traces_G[i] = np.genfromtxt(Gdata[i])
+        try: 
+            Traces_G[i] = np.genfromtxt(Gdata[i])
+        except(FileNotFoundError):
+            Gdata[i] = Gpath + "/raw_ch%.d.dat" %i
+            Traces_G[i] = np.genfromtxt(Gdata[i])
         Traces_C[i] = np.loadtxt(Cdata[i])
     
     #Traces_G = np.array(Traces_G)

@@ -11,6 +11,7 @@ import numpy as np
 import glob
 import pickle
 import matplotlib.pyplot as plt
+from icecream import ic
 
 def GetSimParameters(SimPath):
     
@@ -33,9 +34,15 @@ def GetSimParameters(SimPath):
 
 def GetClosestEvent(E_rand, theta_rand, phi_rand, SimPath):
     
+    E_rand = E_rand/1e18
     E_sim, theta_sim, phi_sim, Simfiles = GetSimParameters(SimPath)
+
+    ic(E_sim)
     
     E_sel = E_sim[np.argmin(abs(E_sim-E_rand))]
+    ic(np.argmin(abs(E_sim-E_rand)))
+    ic(abs(E_sim-E_rand))
+    ic(E_sel)
     theta_sel = theta_sim[np.argmin(abs(theta_sim - theta_rand))]
     phi_sel = phi_sim[np.argmin(abs(phi_sim - phi_rand))]
     SelParams = np.array([E_sel, theta_sel, phi_sel])
@@ -52,8 +59,9 @@ def GetClosestEvent(E_rand, theta_rand, phi_rand, SimPath):
 
 def LoadClosestEvent(E_rand, theta_rand, phi_rand, SimPath, DataPath):
     
+    ic('code: LoadClosestEvent')
     Selfile = GetClosestEvent(E_rand, theta_rand, phi_rand, SimPath)
-    print("Current event " + Selfile)
+    ic("Current event " + Selfile)
     SimDataPath = DataPath + "/" + Selfile 
     
     with open(SimDataPath + '/Traces_C.pkl', 'rb') as file:

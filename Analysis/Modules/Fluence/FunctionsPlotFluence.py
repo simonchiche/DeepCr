@@ -17,7 +17,7 @@ def EfieldMap(Pos, Nlay, Nplanes, E, sim, save, energy, theta, path):
         antmin = i*Nplanes
         antmax = (i+1)*Nplanes
         plt.scatter(Pos[antmin:antmax,0], Pos[antmin:antmax,1], \
-                    c= E[antmin:antmax], cmap = "jet")
+                    c= E[antmin:antmax], cmap = "jet", s=10)
         cbar = plt.colorbar()
         plt.xlabel("x [m]")
         plt.ylabel("y [m]")
@@ -82,9 +82,9 @@ def plot_polarisation(vxb, vxvxb, Etot_sp, Evxb, Evxvxb, path):
     #plt.ylim(-200,200)
     #plt.title(r'$\phi$ $= %.2f \degree$, $\theta$ $= %.2f \degree$, E = %.3f Eev' %(azimuth, zenith, energy), fontsize = 12)
     #cbar.set_label(r"$ E\ [\mu V/m]$")
-    plt.quiver(vxb, vxvxb, Evxb/200, Evxvxb/200)
-    #plt.xlim(-120,120)
-    #plt.ylim(-120,120)
+    plt.quiver(vxb, vxvxb, Evxb/20, Evxvxb/20)
+    plt.xlim(-100,100)
+    plt.ylim(-100,100)
     plt.tight_layout()
     plt.savefig(path + 'polarisation_sp.png', dpi = 500)
     plt.show()
@@ -113,3 +113,24 @@ def PlotLayer(Pos, k, Nplane, path):
     plt.tight_layout()
     plt.savefig(path + "RectGrid.pdf")
     plt.show()
+    
+
+def PlotAllChannels(Traces, ID):
+   
+    plt.plot(Traces[ID][:, 0]*1e9,Traces[ID][:, 1], label ="x-channel")
+    plt.plot(Traces[ID][:, 0]*1e9,Traces[ID][:, 2], label ="y-channel")
+    plt.plot(Traces[ID][:, 0]*1e9,Traces[ID][:, 3], label ="z-channel")
+    plt.xlabel("Time [ns]")
+    plt.ylabel("E [$\mu V/m$]")
+    plt.legend()
+    #plt.xlim(500,700)
+    plt.xlim(630,650)
+    #plt.title(r"Proton  E = 0.01 EeV - $\theta = 0^{\circ}$ $\phi = 0^{\circ}$")
+    plt.tight_layout()
+    plt.savefig("/Users/chiche/Desktop/AllChannelsInIce_%.d.pdf" %ID)
+    plt.show()
+    
+    
+    
+
+

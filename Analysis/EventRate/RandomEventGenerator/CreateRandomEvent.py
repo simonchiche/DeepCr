@@ -13,6 +13,7 @@ import pickle
 import numpy as np
 import matplotlib.pyplot as plt
 from SelectClosestEvent import LoadClosestEvent
+from icecream import ic
 sys.path.append("/Users/chiche/Desktop/DeepCrSearch/Analysis/")
 from Modules.Shower.GetAntenaInfos import GetSurfaceAntennas, GetDepths, GetAntennaLayer
 
@@ -100,6 +101,7 @@ def GetClosestPos(AntPos, xtarget, ytarget):
     
     
 def SelectPowerLineEvent(E_rand, theta_rand, phi_rand, glevel, SimPath, DataPath):
+    ic('code: SelectPowerLineEvent')
     
     Traces_C, Traces_G, AntPos, Selfile = \
     LoadClosestEvent(E_rand, theta_rand, phi_rand, SimPath, DataPath)
@@ -153,7 +155,11 @@ def SelectPowerLineEvent(E_rand, theta_rand, phi_rand, glevel, SimPath, DataPath
 
 
 def GetDeepAntennaLayerEvents(E_rand, theta_rand, phi_rand, glevel, SimPath, DataPath):
-    
+    '''
+    # Take as input a given energy, azimuth, and zenith angle and find the closest simulation in the SimPath library,
+    load the associated data located in DataPath and extract the data for antennas at a depth = 100 m using the glevel input parameter
+    '''
+    ic('code: GetDeepAntennaLayerEvents')
     Traces_C, Traces_G, AntPos, Selfile = \
     LoadClosestEvent(E_rand, theta_rand, phi_rand, SimPath, DataPath)
     
@@ -210,9 +216,20 @@ def save_traces(Traces):
         
     return
     
-def SaveEvent(AntPos, Traces_C, Traces_G, dirname, LibPath, DataFilesPath, j):
+def SaveEvent(AntPos, Traces_C, Traces_G, dirname, DataFilesPath, savedir):
+
+    """
+    Save an event in the format expected by the coreas to hdf5 converter
+    Antpos: antenna positions
+    Traces_C: Coreas traces
+    Traces_G: Geant traces
+    dirname: root name of the directory where the event will be stored
+    savedir: path to the directory where the events are stored
+    DataFilesPath:  path to the files needed by the hdf5 converter 
+    (these files should be put in the same path than the coreas and geant traces at later point)
+    j: integer, event identifier
+    """
     
-    savedir = LibPath + "/" + dirname + "_" + str(j)
     try:
         os.mkdir(savedir)
     except FileExistsError:
