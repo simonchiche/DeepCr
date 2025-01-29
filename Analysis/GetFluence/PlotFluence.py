@@ -29,7 +29,7 @@ from scipy.signal import butter, filtfilt
 from Modules.Fluence.FunctionsRadiationEnergy import GetFluence, GetRadiationEnergy
 
 SimDir =     "DeepCrLib" #"InterpSim"
-SimName = "Rectangle_Proton_0.01_47_0_1"
+SimName = "Rectangle_Proton_0.316_50_0_1"
 
 # We create a directory where the outputs are stored
 date = datetime.today().strftime('%Y-%m-%d')
@@ -46,7 +46,7 @@ font = {'family' : 'DejaVu Sans',
         'size'   : 14}
 
 plt.rc('font', **font)
-
+zenith = float(SimName.split("_")[3])
 Save = False
 
 # =============================================================================
@@ -124,23 +124,43 @@ ExG_int, EyG_int, EzG_int, EtotG_int = GetIntTraces(Traces_G, Nant)
 
 Ex_tot_int, Ey_tot_int, Ez_tot_int, Etot_int = GetIntTraces(Traces_tot, Nant)
 
+
+# =============================================================================
+#                                 Write Power
+# =============================================================================
+
+spacing = abs(Pos[1,0] - Pos[0,0])
+Eair = np.sum(EtotC_int[Pos[:,2] == 3116])
+Eice = np.sum(EtotG_int[Pos[:,2] == 3116])
+'''
+fair = np.sum(EtotC_int[Pos[:,2] == 3116]**2)#*spacing**2
+fice = np.sum(EtotG_int[Pos[:,2] == 3116]**2)#*spacing**2
+
+with open("fluencevs_theta.txt", "a") as f:
+    f.write(f"{zenith}\t{fair}\t{fice}\n")
+'''
+with open("Efield_vs_theta.txt", "a") as f:
+    f.write(f"{zenith}\t{Eair}\t{Eice}\n")
+
+sys.exit()
+
 # =============================================================================
 #                             Plot Traces
 # =============================================================================
 
 ### Plot max traces
 # Geant
-PlotMaxTraces(Traces_G, EtotG, 1)
+##PlotMaxTraces(Traces_G, EtotG, 1)
 #Coreas
-PlotMaxTraces(Traces_C, EtotC, 5)
+##PlotMaxTraces(Traces_C, EtotC, 5)
 
 # Plot all traces above a given threshold
-PlotAllTraces(Nant, Traces_tot, 100, 5)
+##PlotAllTraces(Nant, Traces_tot, 100, 5)
 
-PlotGivenTrace(Traces_C, 310, "y")
+##PlotGivenTrace(Traces_C, 310, "y")
 
-PlotAllChannels(Traces_C, 1068)
-PlotAllChannels(Traces_G, 1068)
+##PlotAllChannels(Traces_C, 1068)
+##PlotAllChannels(Traces_G, 1068)
 
 # =============================================================================
 #                         Compute Fluence

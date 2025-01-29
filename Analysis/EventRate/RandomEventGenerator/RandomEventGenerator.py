@@ -72,7 +72,7 @@ if(GenerateEvent):
                 ic('Select closest event and get deep antennas traces')
                 ###AntPow, Traces_C_pow, Traces_G_pow, xrand, yrand, Selfile =  GetDeepAntennaLayerEvents(0.1, 10, 0, glevel, SimPath, DataPath)
                 AntPow, Traces_C_pow, Traces_G_pow, xrand, yrand, Selfile =  GetDeepAntennaLayerEvents(Erand[i], theta_rand[i], phi_rand[i], glevel, SimPath, DataPath)
-                break
+                #break
                 # Save the event in the DataFilesPath in the format expected by the HDF5 converter in the EventPath repository
                 ic("saving event")
                 EventPath = LibPath + "/" + Selfile + "_" + str(i)
