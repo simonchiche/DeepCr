@@ -28,6 +28,8 @@ from scipy.optimize import curve_fit
 from scipy.signal import butter, filtfilt
 from Modules.Fluence.FunctionsRadiationEnergy import GetFluence, GetRadiationEnergy
 
+PowerDataPath = "/Users/chiche/Desktop/DeepCrSearch/Analysis/GetFluence/Data/Power/"
+
 SimDir =     "DeepCrLib" #"InterpSim"
 SimName = "Rectangle_Proton_0.316_50_0_1"
 
@@ -139,7 +141,7 @@ fice = np.sum(EtotG_int[Pos[:,2] == 3116]**2)#*spacing**2
 with open("fluencevs_theta.txt", "a") as f:
     f.write(f"{zenith}\t{fair}\t{fice}\n")
 '''
-with open("Efield_vs_theta.txt", "a") as f:
+with open(PowerDataPath + "Efield_vs_theta.txt", "a") as f:
     f.write(f"{zenith}\t{Eair}\t{Eice}\n")
 
 sys.exit()
